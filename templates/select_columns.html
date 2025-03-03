@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Columns</title>
+</head>
+<body>
+    <h2>Select Columns</h2>
+    <form action="/select_columns" method="post">
+        <label for="query_column">Select Query Column:</label>
+        <select name="query_column" required>
+            {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <label for="response_column">Select Response Column:</label>
+        <select name="response_column" required>
+            {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <label>Select Rating Columns:</label><br>
+        {% for col in columns %}
+            <input type="checkbox" name="rating_columns" value="{{ col }}"> {{ col }}<br>
+        {% endfor %}
+        <br>
+        <button type="submit">Next</button>
+    </form>
+</body>
+</html>

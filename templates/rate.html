@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rate Queries</title>
+</head>
+<body>
+    <h2>Rate Query {{ row_idx }} / {{ total_rows }}</h2>
+    
+    <p><strong>Query:</strong> {{ query }}</p>
+    <p><strong>Response:</strong> {{ response }}</p>
+
+    <form action="/rate" method="post">
+        {% for col in rating_columns %}
+            <label for="{{ col }}">{{ col }}:</label>
+            <input type="number" name="{{ col }}" min="1" max="5" required><br>
+        {% endfor %}
+        <br>
+        {% if row_idx < total_rows %}
+            <button type="submit">Next</button>
+        {% else %}
+            <button type="submit" formaction="/submit_ratings">Submit Ratings</button>
+        {% endif %}
+    </form>
+    
+</body>
+</html>
