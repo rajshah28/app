@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import pandas as pd
 import os
 
@@ -11,6 +11,8 @@ if not os.path.exists(UPLOAD_FOLDER):
 def save_excel(dataframe, filename="Rated_Query_Evaluation_Sheet.xlsx"):
     save_path = os.path.join(UPLOAD_FOLDER, filename)
     dataframe.to_excel(save_path, index=False)
+
+    session["saved_file"] = save_path
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -46,9 +48,13 @@ def rate():
 
     df = pd.read_excel(session["uploaded_file"])
     row_idx = session.get("current_row", 0)
-    
-    if row_idx >= len(df):  # If all rows are rated
-        return redirect(url_for("submit_ratings"))
+
+    # If all rows are rated, save and go to download
+    if row_idx >= len(df):
+        if session["ratings"]:  # ✅ Check if ratings exist before saving
+            df_rated = pd.DataFrame(session["ratings"])
+            save_excel(df_rated)  # ✅ Save before redirecting
+        return redirect(url_for("download_page"))
 
     query = df.at[row_idx, session["query_column"]]
     response = df.at[row_idx, session["response_column"]]
@@ -57,32 +63,55 @@ def rate():
     if request.method == "POST":
         ratings = {col: request.form[col] for col in rating_columns}
         ratings.update({"Query": query, "Response": response})
+
         session["ratings"].append(ratings)
-        session["current_row"] += 1  # Move to the next row
+        session["current_row"] += 1
+        session.modified = True  # ✅ Ensure session updates
 
-        if session["current_row"] >= len(df):  # If last row is rated
-            return redirect(url_for("submit_ratings"))
+        # ✅ If this is the last row, save before redirecting
+        if session["current_row"] >= len(df):
+            df_rated = pd.DataFrame(session["ratings"])
+            save_excel(df_rated)
+            return redirect(url_for("download_page"))
 
-        return redirect(url_for("rate"))  # Load the next row
+        return redirect(url_for("rate"))
 
-    return render_template("rate.html", 
-                           query=query, 
-                           response=response, 
-                           rating_columns=rating_columns, 
-                           row_idx=row_idx + 1, 
-                           total_rows=len(df))
+    return render_template("rate.html", query=query, response=response, rating_columns=rating_columns, row_idx=row_idx + 1, total_rows=len(df))
 
 @app.route("/submit_ratings", methods=["GET", "POST"])
 def submit_ratings():
     if request.method == "POST":
-        df_rated = pd.DataFrame(session["ratings"])
-        save_excel(df_rated)
-        session.clear()  # Clear session after submission
-        return "Ratings saved successfully! <a href='/'>Upload another file</a>"
+        # Process final row's rating
+        df = pd.read_excel(session["uploaded_file"])
+        row_idx = session.get("current_row", 0)
+        if row_idx < len(df):
+            query = df.at[row_idx, session["query_column"]]
+            response = df.at[row_idx, session["response_column"]]
+            rating_columns = session["rating_columns"]
+            ratings = {col: request.form[col] for col in rating_columns}
+            ratings.update({"Query": query, "Response": response})
+            session["ratings"].append(ratings)
+            session["current_row"] += 1
+        
+        # Save after processing the final row
+        if "ratings" in session:
+            df_rated = pd.DataFrame(session["ratings"])
+            save_excel(df_rated)
+        return redirect(url_for("download_page"))
     return redirect(url_for("index"))
 
+@app.route("/download_page")
+def download_page():
+    if "saved_file" not in session or not os.path.exists(session["saved_file"]):
+        return "No file available for download. <a href='/'>Upload again</a>"
+    return f"<h2>File Ready for Download</h2><a href='/download'>Click here to download</a>"
 
 
+@app.route("/download")
+def download():
+    if "saved_file" in session and os.path.exists(session["saved_file"]):
+        return send_file(session["saved_file"], as_attachment=True)
+    return "File not found. <a href='/'>Upload again</a>"
 
 if __name__ == "__main__":
     app.run(debug=True)
