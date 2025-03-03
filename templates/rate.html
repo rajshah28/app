@@ -17,11 +17,13 @@
             <input type="number" name="{{ col }}" min="1" max="5" required><br>
         {% endfor %}
         <br>
-        {% if row_idx < total_rows %}
-            <button type="submit">Next</button>
-        {% else %}
-            <button type="submit" formaction="/submit_ratings">Submit Ratings</button>
-        {% endif %}
+        <button type="submit">
+            {% if row_idx < total_rows %}
+                Next
+            {% else %}
+                Submit Ratings
+            {% endif %}
+        </button>
     </form>
     
 </body>
