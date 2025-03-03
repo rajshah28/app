@@ -81,23 +81,11 @@ def rate():
 @app.route("/submit_ratings", methods=["GET", "POST"])
 def submit_ratings():
     if request.method == "POST":
-        # Process final row's rating
-        df = pd.read_excel(session["uploaded_file"])
-        row_idx = session.get("current_row", 0)
-        if row_idx < len(df):
-            query = df.at[row_idx, session["query_column"]]
-            response = df.at[row_idx, session["response_column"]]
-            rating_columns = session["rating_columns"]
-            ratings = {col: request.form[col] for col in rating_columns}
-            ratings.update({"Query": query, "Response": response})
-            session["ratings"].append(ratings)
-            session["current_row"] += 1
-        
-        # Save after processing the final row
         if "ratings" in session:
             df_rated = pd.DataFrame(session["ratings"])
             save_excel(df_rated)
-        return redirect(url_for("download_page"))
+
+        return redirect(url_for("download_page"))  # ✅ Redirect to download page
     return redirect(url_for("index"))
 
 @app.route("/download_page")
